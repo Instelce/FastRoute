@@ -1,9 +1,10 @@
+from random import randint
 import pygame
 from debug import debug
 from player import Player
 
 from supports import *
-from tiles import Tile
+from tiles import MapLoaderRect, Tile
 from settings import *
 
 
@@ -16,22 +17,27 @@ class Level:
         # Groups
         self.visible_sprites = pygame.sprite.Group()
         self.obstacle_sprites = pygame.sprite.Group()
+        self.map_loader_sprites = pygame.sprite.Group()
+
+        # Level
+        self.level_index = '01'
+
+        # Map 
+        self.map_layouts = {
+            'ground': import_csv_layout(f'maps/levels/{self.level_index}/{self.level_index}_ground.csv'),
+            'wall': import_csv_layout(f'maps/levels/{self.level_index}/{self.level_index}_wall.csv'),
+            'props': import_csv_layout(f'maps/levels/{self.level_index}/{self.level_index}_props.csv'),
+            'spawns': import_csv_layout(f'maps/levels/{self.level_index}/{self.level_index}_spawns.csv'),
+        }
 
         self.create_map()
 
     def create_map(self):
-        layouts = {
-            'ground': import_csv_layout(r'maps\start\start_ground.csv'),
-            'wall': import_csv_layout(r'maps\start\start_wall.csv'),
-            'props': import_csv_layout(r'maps\start\start_props.csv'),
-            'spawns': import_csv_layout(r'maps\start\start_spawns.csv'),
-        }
-
         graphics = {
             'terrain': import_cut_graphics(r'graphics\terrain\tiles.png')
         }
 
-        for style, layout in layouts.items():
+        for style, layout in self.map_layouts.items():
             for row_index, row in enumerate(layout):
                 for col_index, col in enumerate(row):
                     if col != '-1':
@@ -62,3 +68,4 @@ class Level:
         debug(self.player.is_colliding, 30)
         debug(self.player.is_aim, 40)
         debug(self.player.shoot_count, 50)
+        debug(self.player.rect, 60)

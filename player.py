@@ -1,5 +1,6 @@
 import pygame
 from debug import debug
+from svg.path import parse_path
 
 from settings import TILE_SIZE
 
@@ -18,10 +19,11 @@ class Player(pygame.sprite.Sprite):
 
         self.is_aim = False
         self.direction = pygame.math.Vector2()
-        self.gravity = 0.2
+        self.gravity = 0.1
         self.force = 0
         self.shoot_count = 0
         self.on_air = False
+        self.force_range = pygame.Rect(self.rect.centerx - 200, self.rect.centery - 200, 400, 400)
 
         self.on_right = False
         self.on_left = False
@@ -42,9 +44,24 @@ class Player(pygame.sprite.Sprite):
             print('Prepare the launch...')
 
         if keys[pygame.K_SPACE]:
-            pygame.draw.line(self.diplay_surface, 'white', (self.rect.centerx, self.rect.centery), pygame.mouse.get_pos(), 2)
-            debug(self.get_direction_force()[0], 60)
-            debug(self.get_direction_force()[1], 70)
+            force = self.get_direction_force()[0]
+            direction = self.get_direction_force()[1]
+            mouse_pos = pygame.mouse.get_pos()
+
+            self.force_range = pygame.Rect(self.rect.centerx - 200, self.rect.centery - 200, 400, 400)
+            pygame.draw.rect(self.diplay_surface, 'gray', self.force_range, 2)
+
+            if self.force_range.collidepoint(mouse_pos):
+                pygame.draw.line(self.diplay_surface, 'white', (self.rect.centerx, self.rect.centery), pygame.mouse.get_pos(), 2)
+            # svg_path = f"M{self.rect.centerx},{self.rect.centery} C{self.rect.centerx},{self.rect.centery} {force},100 {mouse_pos[0]},{mouse_pos[1]}"
+            # path = parse_path(svg_path)
+            # n = 3
+            # pts = [ (p.real,p.imag) for p in (path.point(i/n) for i in range(0, n+1))]
+            # pygame.draw.aalines(self.diplay_surface, 'white', False, pts)
+
+            # Debug
+            debug(force, 100)
+            debug(direction, 110)
 
         if not keys[pygame.K_SPACE] and self.is_aim:
             self.force = self.get_direction_force()[0]
