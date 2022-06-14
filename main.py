@@ -1,6 +1,7 @@
 import sys
 import pygame
 
+from menu import *
 from settings import SCREEN_HEIGHT, SCREEN_WIDTH
 from level import Level
 
@@ -15,10 +16,41 @@ class Game:
         self.clock = pygame.time.Clock()
 
         # Scenes
-        self.status = 'level'
+        self.create_start_menu()
         self.scenes = {
-            'level': Level()
+            'start_menu': Menu(
+                'simple',
+                [
+                    Text(
+                        'midtop',
+                        "Fast Route",
+                        (SCREEN_WIDTH/2, SCREEN_HEIGHT/2-100),
+                        UI_FONT,
+                        TITLE_FONT_SIZE
+                    ),
+                    Button(
+                        "Levels",
+                        self.create_level
+                    ),
+                    Button(
+                        "Quit",
+                        self.quit
+                    )
+                ],
+                'graphics/ui/background.png'
+            ),
+            'level': Level(),
         }
+
+    def create_start_menu(self):
+        self.status = 'start_menu'
+
+    def create_level(self):
+        self.status = 'level'
+
+    def quit(self):
+        pygame.quit()
+        sys.exit()
 
     def run(self):
         while True:

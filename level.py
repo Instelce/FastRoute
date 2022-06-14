@@ -25,6 +25,8 @@ class Level:
         # Level
         self.level_index = 1
         self.level_data = read_json_file('data/levels.json')[str(self.level_index)]
+        self.is_done = False
+        self.player_is_dead = False
 
         # Map 
         level_layouts = self.level_data['layouts']
@@ -61,7 +63,7 @@ class Level:
                                 self.player = Player((x,y), [self.visible_sprites], self.obstacle_sprites, self.camera)
                         if style == 'spikes':
                             spike_surf = graphics['spikes'][int(col)]
-                            Spike('spikes', (x,y), [self.visible_sprites, self.spike_sprites], spike_surf)
+                            Spike('spikes', (x,y), [self.visible_sprites, self.spike_sprites, self.obstacle_sprites], spike_surf)
                         if style == 'props':
                             Tile('props', (x,y), [self.visible_sprites], surf)
                         if style == 'wall':
@@ -69,10 +71,17 @@ class Level:
                         if style == 'ground':
                             Tile('ground', (x,y), [self.visible_sprites], surf)
 
-    def display(self):
-        self.camera.update(self.player)
-        self.visible_sprites.update()
+    def check_player_death(self):
+        for spike_sprite in self.spike_sprites:
+            if spike_sprite.rect.colliderect(self.player.rect):
+                self.player_is_dead = True
 
+    def display(self):
+        self.check_player_death()
+
+        self.camera.update(self.player)
+
+        self.visible_sprites.update()
         for sprite in self.visible_sprites:
             self.display_surface.blit(sprite.image, self.camera.apply(sprite))
         

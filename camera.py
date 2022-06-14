@@ -6,19 +6,11 @@ from settings import SCREEN_WIDTH, SCREEN_HEIGHT
 class Camera:
     def __init__(self, width, height):
         self.state = pygame.Rect(0, 0, width, height)
-
-        self.horizontal_move = 0
-        self.last_time = pygame.time.get_ticks()
         
     def apply(self, target):
         return target.rect.move(self.state.topleft) 
 
     def func(self, camera, target_rect):
-        current_time = pygame.time.get_ticks()
-        if current_time - self.last_time >= 10:
-            self.last_time = current_time
-            self.horizontal_move += 0.1
-            print(self.horizontal_move)
 
         # we want to center target_rect
         x = -target_rect.centerx + SCREEN_WIDTH/2
