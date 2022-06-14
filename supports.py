@@ -1,5 +1,6 @@
 import pygame
 from csv import reader
+import json
 
 from settings import *
 
@@ -29,3 +30,17 @@ def import_cut_graphics(path):
                 x, y, TILE_SIZE, TILE_SIZE))
             cut_tiles.append(new_surf)
     return cut_tiles
+
+
+def read_json_file(path):
+    with open(path, 'r') as f:
+        cache = f.read()
+        data = eval(cache)
+    return data
+
+
+def write_json_file(path, data):
+    json_object = json.dumps(data, indent=4)
+    with open(path, 'w') as f:
+        f.write(json_object)
+    return data

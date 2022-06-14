@@ -6,7 +6,7 @@ from settings import TILE_SIZE
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, groups, obstacle_sprites) -> None:
+    def __init__(self, pos, groups, obstacle_sprites, camera) -> None:
         super().__init__(groups)
 
         # Setup
@@ -24,12 +24,17 @@ class Player(pygame.sprite.Sprite):
         self.shoot_count = 0
         self.on_air = False
         self.force_range = pygame.Rect(self.rect.centerx - 200, self.rect.centery - 200, 400, 400)
+        self.first_move = False
 
         self.on_right = False
         self.on_left = False
         self.on_bottom = False
         self.on_top = False
         self.is_colliding = True
+
+        # Camera
+        self.camera = camera
+        self.camera_offset = self.camera.get_offset()
 
         self.diplay_surface = pygame.display.get_surface()
 
@@ -43,31 +48,12 @@ class Player(pygame.sprite.Sprite):
 
             print('Prepare the launch...')
 
-        if keys[pygame.K_SPACE]:
-            force = self.get_direction_force()[0]
-            direction = self.get_direction_force()[1]
-            mouse_pos = pygame.mouse.get_pos()
-
-            self.force_range = pygame.Rect(self.rect.centerx - 200, self.rect.centery - 200, 400, 400)
-            pygame.draw.rect(self.diplay_surface, 'gray', self.force_range, 2)
-
-            if self.force_range.collidepoint(mouse_pos):
-                pygame.draw.line(self.diplay_surface, 'white', (self.rect.centerx, self.rect.centery), pygame.mouse.get_pos(), 2)
-            # svg_path = f"M{self.rect.centerx},{self.rect.centery} C{self.rect.centerx},{self.rect.centery} {force},100 {mouse_pos[0]},{mouse_pos[1]}"
-            # path = parse_path(svg_path)
-            # n = 3
-            # pts = [ (p.real,p.imag) for p in (path.point(i/n) for i in range(0, n+1))]
-            # pygame.draw.aalines(self.diplay_surface, 'white', False, pts)
-
-            # Debug
-            debug(force, 100)
-            debug(direction, 110)
-
         if not keys[pygame.K_SPACE] and self.is_aim:
             self.force = self.get_direction_force()[0]
             self.direction = self.get_direction_force()[1]
             self.is_aim = False
             self.shoot_count += 1
+            self.first_move = True
 
             print('Launched !')
 
@@ -135,7 +121,7 @@ class Player(pygame.sprite.Sprite):
                 self.apply_gravity()
 
     def get_direction_force(self):
-        mouse_pos = pygame.mouse.get_pos()
+        mouse_pos = (pygame.mouse.get_pos()[0] - self.camera_offset[0], pygame.mouse.get_pos()[1] - self.camera_offset[1])
         player_vec = pygame.math.Vector2(self.rect.center)
         mouse_vec = pygame.math.Vector2(mouse_pos)
 
@@ -155,6 +141,27 @@ class Player(pygame.sprite.Sprite):
         self.direction.y += self.gravity
         self.rect.y += self.direction.y
 
+    def draw_indicator(self):
+        keys = pygame.key.get_pressed()
+
+        if keys[pygame.K_SPACE]:
+            force = self.get_direction_force()[0]
+            direction = self.get_direction_force()[1]
+            mouse_pos = pygame.mouse.get_pos()
+
+            self.force_range = pygame.Rect(self.rect.centerx - 200 + self.camera_offset[0], self.rect.centery - 200 + self.camera_offset[1], 400, 400)
+            pygame.draw.rect(self.diplay_surface, 'gray', self.force_range, 2)
+
+            if self.force_range.collidepoint(mouse_pos):
+                pygame.draw.line(self.diplay_surface, 'white', (self.rect.centerx+self.camera_offset[0], self.rect.centery+self.camera_offset[1]), pygame.mouse.get_pos(), 2)
+
+            # Debug
+            debug(force, 100)
+            debug(direction, 110)
+
     def update(self):
+        self.camera_offset = self.camera.get_offset()
+        
         self.input()
         self.move(self.force)
+

@@ -1,3 +1,13 @@
 {
-    
+    "1": {
+        "index": 1,
+        "unlock": 2,
+        "layouts": {
+            "ground": "maps/levels/1/1_ground.csv",
+            "wall": "maps/levels/1/1_wall.csv",
+            "props": "maps/levels/1/1_props.csv",
+            "spikes": "maps/levels/1/1_spikes.csv",
+            "spawns": "maps/levels/1/1_spawns.csv"
+        }
+    }
 }
