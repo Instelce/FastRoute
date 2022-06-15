@@ -1,3 +1,4 @@
+import math
 import pygame
 from debug import debug
 from svg.path import parse_path
@@ -38,7 +39,13 @@ class Player(pygame.sprite.Sprite):
         self.camera = camera
         self.camera_offset = self.camera.get_offset()
 
-        self.diplay_surface = pygame.display.get_surface()
+        # Indicator
+        self.indicator_original_image = pygame.image.load('graphics/player/indicator.png').convert_alpha()
+        self.indicator_image = self.indicator_original_image
+        self.indicator_rect = self.indicator_image.get_rect(midbottom=(self.rect.centerx+self.camera_offset[0], self.rect.centery+self.camera_offset[1]))
+
+        self.last_time = pygame.time.get_ticks()
+        self.display_surface = pygame.display.get_surface()
 
     def input(self):
         keys = pygame.key.get_pressed()
@@ -127,15 +134,13 @@ class Player(pygame.sprite.Sprite):
         player_vec = pygame.math.Vector2(self.rect.center)
         mouse_vec = pygame.math.Vector2(mouse_pos)
 
-        if (mouse_vec - player_vec).magnitude() < self.max_force:
+        if self.min_force < (mouse_vec - player_vec).magnitude() < self.max_force:
             force = (mouse_vec - player_vec).magnitude()
         else:
-            force = self.max_force
-
-        if (mouse_vec - player_vec).magnitude() > self.min_force:
-            force = (mouse_vec - player_vec).magnitude()
-        else:
-            force = self.min_force
+            if (mouse_vec - player_vec).magnitude() > self.max_force:
+                force = self.max_force
+            if (mouse_vec - player_vec).magnitude() < self.min_force:
+                force = self.min_force
 
         if force > 0:
             direction = (mouse_vec - player_vec).normalize()
@@ -149,6 +154,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.y += self.direction.y
 
     def draw_indicator(self):
+        current_time = pygame.time.get_ticks()
         keys = pygame.key.get_pressed()
 
         if keys[pygame.K_SPACE]:
@@ -157,14 +163,28 @@ class Player(pygame.sprite.Sprite):
             mouse_pos = pygame.mouse.get_pos()
 
             self.force_range = pygame.Rect(self.rect.centerx - 200 + self.camera_offset[0], self.rect.centery - 200 + self.camera_offset[1], 400, 400)
-            pygame.draw.rect(self.diplay_surface, 'gray', self.force_range, 2)
 
-            if self.force_range.collidepoint(mouse_pos):
-                pygame.draw.line(self.diplay_surface, 'white', (self.rect.centerx+self.camera_offset[0], self.rect.centery+self.camera_offset[1]), pygame.mouse.get_pos(), 2)
+            mx, my = pygame.mouse.get_pos()
+            dx, dy = mx - self.rect.centerx+self.camera_offset[0], self.rect.centery+self.camera_offset[1] - my
+            angle = math.degrees(math.atan2(-dy, dx)) + 90
+            self.indicator_size = (self.indicator_original_image.get_size()[0], force)
+            self.indicator_image = pygame.transform.scale(self.indicator_original_image, (self.indicator_size[0], math.floor(self.indicator_size[1])))
+            self.indicator_image = pygame.transform.rotate(self.indicator_image, -angle) 
+
+            indicator_pos = (self.rect.center[0] + self.camera_offset[0], self.rect.center[1] + self.camera_offset[1])
+            if -270 < -angle < -90:
+                self.indicator_rect = self.indicator_image.get_rect(midtop=indicator_pos)
+            else:
+                self.indicator_rect = self.indicator_image.get_rect(midbottom=indicator_pos)
+
+            # self.diplay_surface.blit(self.indicator_image, self.indicator_rect)
+
+            pygame.draw.line(self.display_surface, "white", indicator_pos, pygame.mouse.get_pos(), 2)
 
             # Debug
             debug(force, 100)
             debug(direction, 110)
+            debug(-angle, 130)
 
     def update(self):
         self.camera_offset = self.camera.get_offset()

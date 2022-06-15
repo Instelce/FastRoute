@@ -1,6 +1,7 @@
 import pygame
 from csv import reader
 import json
+import os
 
 from settings import *
 
@@ -12,6 +13,18 @@ def import_csv_layout(path):
         for row in layout:
             terrain_map.append(list(row))
         return terrain_map
+
+
+def import_folder(path):
+    surface_list = []
+
+    for _, __, image_files in os.walk(path):
+        for image in image_files:
+            full_path = path + '/' + image
+            image_surf = pygame.image.load(full_path).convert_alpha()
+            surface_list.append(image_surf)
+
+    return surface_list
 
 
 def import_cut_graphics(path):

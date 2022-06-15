@@ -35,8 +35,43 @@ class Game:
                         self.create_level_chooser_menu
                     ),
                     Button(
+                        "Credits",
+                        self.create_credits_page
+                    ),
+                    Button(
                         "Quit",
                         self.quit
+                    )
+                ],
+                'graphics/ui/background.png'
+            ),
+            'credits_page': Menu(
+                'simple',
+                [
+                    Text(
+                        'midtop',
+                        "Credits",
+                        (SCREEN_WIDTH/2, SCREEN_HEIGHT/2-100),
+                        UI_FONT,
+                        TITLE_FONT_SIZE
+                    ),
+                    Text(
+                        'midtop',
+                        "Adve assets by egordorichev",
+                        None,
+                        UI_FONT,
+                        BUTTON_FONT_SIZE
+                    ),
+                    Text(
+                        'midtop',
+                        "Gamer font by memesbruh03",
+                        None,
+                        UI_FONT,
+                        BUTTON_FONT_SIZE
+                    ),
+                    Button(
+                        "Back",
+                        self.create_start_menu
                     )
                 ],
                 'graphics/ui/background.png'
@@ -90,6 +125,9 @@ class Game:
     def create_level_chooser_menu(self):
         self.scenes['level_chooser_menu'].create_level_buttons()
         self.status = 'level_chooser_menu'
+    
+    def create_credits_page(self):
+        self.status = 'credits_page'
 
     def create_game_over_menu(self):
         self.status = 'game_over_menu'
@@ -120,7 +158,7 @@ class Game:
             self.scene_transition.end()
 
     def run(self):
-        while True:
+        while 1:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()

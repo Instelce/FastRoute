@@ -6,7 +6,7 @@ from debug import debug
 from player import Player
 
 from supports import *
-from tiles import MapLoaderRect, Spike, Tile
+from tiles import AnimatedTile, CircularSpike, MapLoaderRect, Tile
 from settings import *
 
 
@@ -61,14 +61,21 @@ class Level:
                         surf = graphics['terrain'][int(col)]
                         
                         if style == 'spawns':
-                            if col == '0':
+                            if col == '0': # Player
                                 self.player = Player((x,y), [self.visible_sprites], self.obstacle_sprites, self.camera)
-                            if col == '2':
-                                portal_surf = pygame.image.load('graphics/portal/portal.png').convert_alpha()
-                                self.portal = Tile('portal', (x,y), [self.visible_sprites], portal_surf)
+                            if col == '1': # Portal
+                                portal_surf = pygame.image.load('graphics/portal/portal__0.png').convert_alpha()
+                                self.portal = AnimatedTile('portal', (x,y), [self.visible_sprites], portal_surf, 'graphics/portal')
+                            # Spikes
+                            if col == '3':
+                                spike_surf = pygame.image.load('graphics/spikes/circular/1.png').convert_alpha()
+                                CircularSpike('circular_spikes', (x,y), [self.visible_sprites, self.spike_sprites], spike_surf)
+                            if col == '4':
+                                spike_surf = pygame.image.load('graphics/spikes/circular/2.png').convert_alpha()
+                                CircularSpike('circular_spikes', (x,y), [self.visible_sprites, self.spike_sprites], spike_surf)
                         if style == 'spikes':
                             spike_surf = graphics['spikes'][int(col)]
-                            Spike('spikes', (x,y), [self.visible_sprites, self.spike_sprites], spike_surf)
+                            Tile('spikes', (x,y), [self.visible_sprites, self.spike_sprites], spike_surf)
                         if style == 'props':
                             Tile('props', (x,y), [self.visible_sprites], surf)
                         if style == 'wall':
@@ -80,6 +87,13 @@ class Level:
         for spike_sprite in self.spike_sprites:
             if spike_sprite.rect.colliderect(self.player.rect):
                 self.player_is_dead = True
+            if spike_sprite.sprite_type == 'circular_spikes':
+                if spike_sprite.death_box.colliderect(self.player.rect):
+                    self.player_is_dead = True
+            else:
+                if spike_sprite.rect.colliderect(self.player.rect):
+                    self.player_is_dead = True
+            
     
     def check_level_is_done(self):
         if self.player.rect.colliderect(self.portal.rect):
@@ -89,9 +103,10 @@ class Level:
         if self.player_is_dead:
             self.create_game_over_menu()
         if self.is_done:
-            if self.level_index + 1 < len(self.level_data):
-                self.level_data[str(self.level_index+1)]['unlocked'] = True
-                write_json_file('data/levels.json', self.level_data)
+            levels_data = read_json_file('data/levels.json')
+            if self.level_index + 1 < len(levels_data):
+                levels_data[str(self.level_index+1)]['unlocked'] = True
+                write_json_file('data/levels.json', levels_data)
             self.create_level_chooser_menu()
 
     def display(self):

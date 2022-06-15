@@ -1,6 +1,5 @@
 {
     "1": {
-        "index": 1,
         "unlocked": true,
         "layouts": {
             "ground": "maps/levels/1/1_ground.csv",
@@ -11,7 +10,6 @@
         }
     },
     "2": {
-        "index": 2,
         "unlocked": true,
         "layouts": {
             "ground": "maps/levels/2/2_ground.csv",
@@ -22,7 +20,6 @@
         }
     },
     "3": {
-        "index": 3,
         "unlocked": true,
         "layouts": {
             "ground": "maps/levels/2/2_ground.csv",
@@ -33,7 +30,6 @@
         }
     },
     "4": {
-        "index": 4,
         "unlocked": true,
         "layouts": {
             "ground": "maps/levels/2/2_ground.csv",
@@ -44,8 +40,7 @@
         }
     },
     "5": {
-        "index": 5,
-        "unlocked": true,
+        "unlocked": false,
         "layouts": {
             "ground": "maps/levels/2/2_ground.csv",
             "wall": "maps/levels/2/2_wall.csv",
