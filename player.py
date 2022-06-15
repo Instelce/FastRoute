@@ -21,6 +21,8 @@ class Player(pygame.sprite.Sprite):
         self.direction = pygame.math.Vector2()
         self.gravity = 0.1
         self.force = 0
+        self.max_force = 150
+        self.min_force = 50
         self.shoot_count = 0
         self.on_air = False
         self.force_range = pygame.Rect(self.rect.centerx - 200, self.rect.centery - 200, 400, 400)
@@ -125,10 +127,15 @@ class Player(pygame.sprite.Sprite):
         player_vec = pygame.math.Vector2(self.rect.center)
         mouse_vec = pygame.math.Vector2(mouse_pos)
 
-        if (mouse_vec - player_vec).magnitude() < 150:
+        if (mouse_vec - player_vec).magnitude() < self.max_force:
             force = (mouse_vec - player_vec).magnitude()
         else:
-            force = 150
+            force = self.max_force
+
+        if (mouse_vec - player_vec).magnitude() > self.min_force:
+            force = (mouse_vec - player_vec).magnitude()
+        else:
+            force = self.min_force
 
         if force > 0:
             direction = (mouse_vec - player_vec).normalize()

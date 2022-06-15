@@ -35,7 +35,7 @@ def import_cut_graphics(path):
 def read_json_file(path):
     with open(path, 'r') as f:
         cache = f.read()
-        data = eval(cache)
+        data = json.loads(cache)
     return data
 
 

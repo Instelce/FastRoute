@@ -1,6 +1,8 @@
 import pygame
+from math import floor
 
 from settings import *
+from supports import read_json_file
 
 
 class Menu:
@@ -51,19 +53,138 @@ class Menu:
         self.display_components()
 
 
+class LevelChooserMenu(Menu):
+    def __init__(self, menu_type, components, background, create_level, create_start_menu) -> None:
+        super().__init__(menu_type, components, background)
+        self.create_level = create_level
+        self.create_start_menu = create_start_menu
+
+        self.back_button = Button(
+            "Back",
+            self.create_start_menu,
+            (SCREEN_WIDTH/2, SCREEN_HEIGHT-100)
+        )
+
+        self.create_level_buttons()
+
+    def create_level_buttons(self):
+        self.level_data = read_json_file('data/levels.json')
+        self.level_buttons = []
+
+        lines_counter = 0
+        gap = 20
+        button_size = 80
+        
+        for index, level in enumerate(self.level_data):
+            self.level_buttons.append(Button(
+                index+1,
+                self.create_level,
+                (SCREEN_WIDTH/2 - (button_size * 2 + gap + gap/2) + ((button_size + gap) * (index%4)), 150 + (button_size + gap) * lines_counter),
+                'topleft',
+                r"graphics\ui\buttons\level\default.png",
+                r"graphics\ui\buttons\level\hover.png",
+                r"graphics\ui\buttons\level\disable.png"
+            ))
+            if not self.level_data[level]['unlocked']:
+                self.level_buttons[index].disable = True
+            else:
+                self.level_buttons[index].disable = False
+
+            self.level_buttons[index].callback_arg = index+1
+
+            # print(len(self.level_buttons), index+1 % 4, index)
+
+            if (index+1) % 4 == 0:
+                lines_counter += 1
+
+    def display(self):
+        self.components_reposition()
+
+        self.display_surface.blit(self.background, (0, 0))
+        self.display_components()
+
+        # Back button
+        self.back_button.display()
+
+        # Draw buttons
+        for button in self.level_buttons:
+            button.display()
+
+
+class SceneTransition:
+    def __init__(self) -> None:
+        self.display_surface = pygame.display.get_surface()
+        self.last_time = pygame.time.get_ticks()
+
+        self.size = 0
+
+        self.transition_is_finish = False
+        self.can_dicrease = False
+        self.cooldown = 1
+        self.grow = 50
+
+    def start(self):
+        self.loading_text = Text('midtop', "Fast Route", (SCREEN_WIDTH/2, SCREEN_HEIGHT/2), UI_FONT, floor(self.size/20), 'black')
+
+        if self.transition_is_finish:
+            self.transition_is_finish = False
+            self.can_dicrease = False
+            self.size = 100
+
+        max_size = SCREEN_WIDTH + (SCREEN_WIDTH/3)
+
+        current_time = pygame.time.get_ticks()
+
+        if not self.transition_is_finish:
+            if self.size <= max_size:
+                if current_time - self.last_time >= self.cooldown:
+                    self.last_time = current_time
+                    self.size += self.grow
+
+                    if self.size >= max_size:
+                        self.can_dicrease = True
+
+            pygame.draw.rect(self.display_surface, 'white', pygame.Rect(0, 0, self.size, SCREEN_HEIGHT))
+            
+            if self.size >= SCREEN_WIDTH/2:
+                self.loading_text.display()
+
+    def end(self):
+        self.loading_text = Text('midtop', "Fast Route", (SCREEN_WIDTH/2, SCREEN_HEIGHT/2), UI_FONT, floor(self.size/20), 'black')
+
+        if not self.transition_is_finish:
+            current_time = pygame.time.get_ticks()
+            
+            if current_time - self.last_time >= self.cooldown:
+                self.last_time = current_time
+                self.size -= self.grow
+
+                if self.size <= 0:
+                    self.size = 0
+                    self.transition_is_finish = True
+
+            pygame.draw.rect(self.display_surface, 'white', pygame.Rect(SCREEN_WIDTH-self.size, 0, self.size, SCREEN_HEIGHT))
+            
+            if self.size >= SCREEN_WIDTH/2:
+                self.loading_text.display()
+
+
 class Button:
-    def __init__(self, content, callback=None, pos=None, rect_alignement='midtop', default_image="graphics/ui/buttons/default/default.png", hover_image="graphics/ui/buttons/default/hover.png") -> None:
-        self.content = content
+    def __init__(self, content, callback=None, pos=None, rect_alignement='midtop', default_image="graphics/ui/buttons/default/default.png", hover_image="graphics/ui/buttons/default/hover.png", disable_image="graphics/ui/buttons/default/disable.png") -> None:
+        self.content = str(content)
         self.callback = callback
         self.pos = (SCREEN_WIDTH/2, 200) if pos is None else pos
         self.rect_alignement = rect_alignement
 
         self.display_surface = pygame.display.get_surface()
+        self.callback_arg = None
         self.click = False
+        self.disable = False
 
         # Image
         self.default_image = default_image
         self.hover_image = hover_image
+        self.disable_image = disable_image
         self.image = pygame.image.load(self.default_image).convert_alpha()
         self.size = self.image.get_size()
 
@@ -74,25 +195,33 @@ class Button:
         mouse_pos = pygame.mouse.get_pos()
 
         # Hover
-        if self.rect.collidepoint(mouse_pos):
-            self.image = pygame.image.load(self.hover_image).convert_alpha()
+        if self.disable:
+            self.image = pygame.image.load(self.disable_image).convert_alpha()
             self.display_surface.blit(self.image, self.rect)
-            
-            self.text_color = 'white'
-
-            # Click
-            if pygame.mouse.get_pressed()[0]:
-                self.click = True
-                if self.callback != None:
-                    self.callback()
-            else:
-                self.click = False
+            self.text_color = '#3f3f3f'
         else:
-            self.image = pygame.image.load(self.default_image).convert_alpha()
-            self.display_surface.blit(self.image, self.rect)
+            if self.rect.collidepoint(mouse_pos):
+                self.image = pygame.image.load(self.hover_image).convert_alpha()
+                self.display_surface.blit(self.image, self.rect)
+                
+                self.text_color = 'white'
 
-            self.text_color = 'white'
+                # Click
+                if pygame.mouse.get_pressed()[0]:
+                    self.click = True
+                    if self.callback != None:
+                        if self.callback_arg != None:
+                            self.callback(self.callback_arg)
+                        else:
+                            self.callback()
+                else:
+                    self.click = False
+            else:
+                self.image = pygame.image.load(self.default_image).convert_alpha()
+                self.display_surface.blit(self.image, self.rect)
 
+                self.text_color = 'white'
+        
     def display_text_or_image(self):
         if '/' in self.content or "\\" in self.content:
             # Image

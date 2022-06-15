@@ -1,13 +1,57 @@
 {
     "1": {
         "index": 1,
-        "unlock": 2,
+        "unlocked": true,
         "layouts": {
             "ground": "maps/levels/1/1_ground.csv",
             "wall": "maps/levels/1/1_wall.csv",
             "props": "maps/levels/1/1_props.csv",
             "spikes": "maps/levels/1/1_spikes.csv",
             "spawns": "maps/levels/1/1_spawns.csv"
+        }
+    },
+    "2": {
+        "index": 2,
+        "unlocked": true,
+        "layouts": {
+            "ground": "maps/levels/2/2_ground.csv",
+            "wall": "maps/levels/2/2_wall.csv",
+            "props": "maps/levels/2/2_props.csv",
+            "spikes": "maps/levels/2/2_spikes.csv",
+            "spawns": "maps/levels/2/2_spawns.csv"
+        }
+    },
+    "3": {
+        "index": 3,
+        "unlocked": true,
+        "layouts": {
+            "ground": "maps/levels/2/2_ground.csv",
+            "wall": "maps/levels/2/2_wall.csv",
+            "props": "maps/levels/2/2_props.csv",
+            "spikes": "maps/levels/2/2_spikes.csv",
+            "spawns": "maps/levels/2/2_spawns.csv"
+        }
+    },
+    "4": {
+        "index": 4,
+        "unlocked": true,
+        "layouts": {
+            "ground": "maps/levels/2/2_ground.csv",
+            "wall": "maps/levels/2/2_wall.csv",
+            "props": "maps/levels/2/2_props.csv",
+            "spikes": "maps/levels/2/2_spikes.csv",
+            "spawns": "maps/levels/2/2_spawns.csv"
+        }
+    },
+    "5": {
+        "index": 5,
+        "unlocked": true,
+        "layouts": {
+            "ground": "maps/levels/2/2_ground.csv",
+            "wall": "maps/levels/2/2_wall.csv",
+            "props": "maps/levels/2/2_props.csv",
+            "spikes": "maps/levels/2/2_spikes.csv",
+            "spawns": "maps/levels/2/2_spawns.csv"
         }
     }
 }
