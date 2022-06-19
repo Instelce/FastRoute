@@ -16,7 +16,8 @@ class Game:
         self.clock = pygame.time.Clock()
 
         # Scenes
-        self.create_start_menu()
+        self.status = 'level'
+        self.level_index = 1
         self.old_status = self.status
         self.scene_transition = SceneTransition()
         self.scenes = {
@@ -26,7 +27,7 @@ class Game:
                     Text(
                         'midtop',
                         "Fast Route",
-                        (SCREEN_WIDTH/2, SCREEN_HEIGHT/2-100),
+                        (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 100),
                         UI_FONT,
                         TITLE_FONT_SIZE
                     ),
@@ -51,7 +52,7 @@ class Game:
                     Text(
                         'midtop',
                         "Credits",
-                        (SCREEN_WIDTH/2, SCREEN_HEIGHT/2-100),
+                        (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 100),
                         UI_FONT,
                         TITLE_FONT_SIZE
                     ),
@@ -82,7 +83,7 @@ class Game:
                     Text(
                         'midtop',
                         "Levels",
-                        (SCREEN_WIDTH/2, 50),
+                        (SCREEN_WIDTH / 2, 50),
                         UI_FONT,
                         TITLE_FONT_SIZE
                     ),
@@ -97,7 +98,7 @@ class Game:
                     Text(
                         'midtop',
                         "Game Over",
-                        (SCREEN_WIDTH/2, SCREEN_HEIGHT/2-100),
+                        (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 100),
                         UI_FONT,
                         TITLE_FONT_SIZE
                     ),
@@ -116,16 +117,16 @@ class Game:
                 ],
                 'graphics/ui/background_two.png'
             ),
-            'level': Level(1, self.create_level_chooser_menu, self.create_game_over_menu),
+            'level': Level(self.level_index, self.create_level_chooser_menu, self.create_game_over_menu),
         }
 
     def create_start_menu(self):
         self.status = 'start_menu'
-    
+
     def create_level_chooser_menu(self):
         self.scenes['level_chooser_menu'].create_level_buttons()
         self.status = 'level_chooser_menu'
-    
+
     def create_credits_page(self):
         self.status = 'credits_page'
 
@@ -133,12 +134,14 @@ class Game:
         self.status = 'game_over_menu'
 
     def create_level(self, level_index):
-        self.scenes['level'] = Level(level_index, self.create_level_chooser_menu, self.create_game_over_menu)
+        self.scenes['level'] = Level(
+            level_index, self.create_level_chooser_menu, self.create_game_over_menu)
         self.level_index = level_index
         self.status = 'level'
-    
+
     def create_last_level(self):
-        self.scenes['level'] = Level(self.level_index, self.create_level_chooser_menu, self.create_game_over_menu)
+        self.scenes['level'] = Level(
+            self.level_index, self.create_level_chooser_menu, self.create_game_over_menu)
         self.status = 'level'
 
     def quit(self):
@@ -163,7 +166,7 @@ class Game:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-            
+
             # self.screen.fill('#0e071b')
             self.screen.fill('black')
             self.display_scene()

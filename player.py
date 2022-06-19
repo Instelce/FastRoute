@@ -25,7 +25,9 @@ class Player(pygame.sprite.Sprite):
         self.max_force = 150
         self.min_force = 50
         self.shoot_count = 0
-        self.on_air = False
+        self.in_air = False
+        self.air_time = None
+        self.max_air_time = 1000
         self.force_range = pygame.Rect(self.rect.centerx - 200, self.rect.centery - 200, 400, 400)
         self.first_move = False
 
@@ -52,19 +54,31 @@ class Player(pygame.sprite.Sprite):
 
         if keys[pygame.K_SPACE] and not self.is_aim and self.shoot_count < 2:
             self.force = 0
-            self.direction = pygame.math.Vector2()
+            # self.direction = pygame.math.Vector2()
             self.is_aim = True
 
-            print('Prepare the launch...')
+            if self.shoot_count == 1:
+                self.force = self.force // 5
+
+            print(f'{self.shoot_count} Prepare the launch...')
 
         if not keys[pygame.K_SPACE] and self.is_aim:
+            self.air_time = pygame.time.get_ticks()
             self.force = self.get_direction_force()[0]
             self.direction = self.get_direction_force()[1]
             self.is_aim = False
+            self.in_air = True
             self.shoot_count += 1
             self.first_move = True
 
             print('Launched !')
+        
+        # if self.in_air:
+        #     print("In air")
+        #     if self.air_time - self.last_time >= self.max_air_time:
+        #         print("Finish")
+        #         self.force = self.min_force
+        #         self.direction = pygame.Vector2()
 
     def move(self, speed):
         if self.direction.magnitude() != 0:
@@ -81,8 +95,9 @@ class Player(pygame.sprite.Sprite):
         if self.is_colliding:
             self.force = 0
             self.direction = pygame.math.Vector2()
-            self.is_colliding = False
             self.shoot_count = 0
+            self.in_air = False
+            self.is_colliding = False
 
         self.rect.center = self.rect.center
 
@@ -126,13 +141,14 @@ class Player(pygame.sprite.Sprite):
             elif self.on_top and self.direction.y > 0:
                 self.on_top = False
 
-            if self.shoot_count > 0 and not self.is_aim and not self.on_bottom and not self.on_top and not self.on_left and not self.on_right:
+            if self.shoot_count > 0 and not self.on_bottom and not self.on_top and not self.on_left and not self.on_right:
                 self.apply_gravity()
 
     def get_direction_force(self):
         mouse_pos = (pygame.mouse.get_pos()[0] - self.camera_offset[0], pygame.mouse.get_pos()[1] - self.camera_offset[1])
         player_vec = pygame.math.Vector2(self.rect.center)
         mouse_vec = pygame.math.Vector2(mouse_pos)
+        force = 0
 
         if self.min_force < (mouse_vec - player_vec).magnitude() < self.max_force:
             force = (mouse_vec - player_vec).magnitude()
@@ -173,13 +189,13 @@ class Player(pygame.sprite.Sprite):
 
             indicator_pos = (self.rect.center[0] + self.camera_offset[0], self.rect.center[1] + self.camera_offset[1])
             if -270 < -angle < -90:
-                self.indicator_rect = self.indicator_image.get_rect(midtop=indicator_pos)
+                self.indicator_rect = self.indicator_image.get_rect(center=indicator_pos)
             else:
-                self.indicator_rect = self.indicator_image.get_rect(midbottom=indicator_pos)
+                self.indicator_rect = self.indicator_image.get_rect(center=indicator_pos)
 
-            # self.diplay_surface.blit(self.indicator_image, self.indicator_rect)
+            self.display_surface.blit(self.indicator_image, self.indicator_rect)
 
-            pygame.draw.line(self.display_surface, "white", indicator_pos, pygame.mouse.get_pos(), 2)
+            # pygame.draw.line(self.display_surface, "white", indicator_pos, pygame.mouse.get_pos(), 2)
 
             # Debug
             debug(force, 100)

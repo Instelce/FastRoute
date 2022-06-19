@@ -1,3 +1,4 @@
+import enum
 from random import randint
 import pygame
 from sqlalchemy import true
@@ -42,6 +43,9 @@ class Level:
             len(self.map_layouts['wall']) * TILE_SIZE
         )
 
+        # Paticles
+        self.particles = []
+
         # Create map
         self.create_map()
 
@@ -83,6 +87,32 @@ class Level:
                         if style == 'ground':
                             Tile('ground', (x,y), [self.visible_sprites], surf)
 
+    def create_particles(self):
+        pox, poy = (self.portal.rect.center[0] + self.camera.get_offset()[0], self.portal.rect.center[1] + self.camera.get_offset()[1])
+        self.particles.append([[pox, poy], [randint(0, 42) / 6 - 3.5, randint(0, 42) / 6 - 3.5], randint(2, 4)])
+        
+        if self.player.in_air and not self.player.is_aim:
+            px, py = (self.player.rect.centerx + self.camera.get_offset()[0], self.player.rect.centery + self.camera.get_offset()[1])
+            self.particles.append([[px, py], [randint(0, 42) / 8 - 3.5, randint(0, 42) / 8 - 3.5], randint(2, self.player.force // 20)])
+        
+        for particle in self.particles:
+            particle[0][0] += particle[1][0]
+            # loc_str = [int(particle[0][0] / TILE_SIZE), int(particle[0][1] / TILE_SIZE)]
+            # particle[1][0] = -0.7 * particle[1][0]
+            # particle[1][1] *= 0.95
+            # particle[0][0] += particle[1][0] * 2
+            particle[0][1] += particle[1][1]
+            # loc_str = str(int(particle[0][0] / TILE_SIZE)) + ';' + str(int(particle[0][1] / TILE_SIZE))
+            # if loc_str in tile_map:
+            #     particle[1][1] = -0.7 * particle[1][1]
+            #     particle[1][0] *= 0.95
+            #     particle[0][1] += particle[1][1] * 2
+            particle[2] -= 0.035
+            particle[1][1] += 0.15
+            pygame.draw.circle(self.display_surface, "#0e071b", [int(particle[0][0]), int(particle[0][1])], int(particle[2]))
+            if particle[2] <= 0:
+                self.particles.remove(particle)
+
     def check_player_death(self):
         for spike_sprite in self.spike_sprites:
             if spike_sprite.rect.colliderect(self.player.rect):
@@ -110,6 +140,8 @@ class Level:
             self.create_level_chooser_menu()
 
     def display(self):
+        self.create_particles()
+
         self.redirect()
         self.check_player_death()
         self.check_level_is_done()
