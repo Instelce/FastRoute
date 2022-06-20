@@ -20,6 +20,7 @@ class SurfTile(Tile):
     def __init__(self, sprite_type, pos, groups, surface) -> None:
         super().__init__(sprite_type, pos, groups)
         self.image = surface
+        self.rect = self.image.get_rect(topleft=pos)
 
 
 class AnimatedTile(Tile):

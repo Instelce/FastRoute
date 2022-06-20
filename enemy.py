@@ -1,6 +1,7 @@
 import os
 import pygame
 import math
+from random import randint
 
 from settings import TILE_SIZE
 from supports import import_folder, read_json_file
@@ -17,12 +18,6 @@ class Enemy(pygame.sprite.Sprite):
         self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
         self.rect = self.image.get_rect(topleft=self.pos)
 
-        # Stats
-        self.enemy_stats = read_json_file('data/enemies.json')[self.type]
-        self.action_range = self.enemy_stats['action_range']
-        self.action_range_rect = pygame.Rect(
-            self.rect.center[0] - self.action_range / 2, self.rect.center[1] - self.action_range / 2, self.action_range, self.action_range)
-
         # Aura
         self.aura_origin_image = pygame.image.load(
             'graphics/enemies/aura.png').convert_alpha()
@@ -36,11 +31,35 @@ class Enemy(pygame.sprite.Sprite):
         self.bullet_exist = False
 
         # Animations
-        self.status = 'look_front'
+        if self.type == 'sniper':
+            self.status = 'look_front'
+        elif self.type == 'pusher':
+            if randint(0, 1) == 0:
+                self.direction = 'left'
+            else:
+                self.direction = 'right'
+            self.status = f'look_{self.direction}'
+            print(self.status)
+
         self.animation_speed = 0.15
         self.frame_index = 0
 
-        self.last_time = pygame.time.get_ticks()
+        # Stats
+        self.enemy_stats = read_json_file('data/enemies.json')[self.type]
+        self.action_range = self.enemy_stats['action_range']
+        if self.type == 'sniper':
+            self.action_range_rect = pygame.Rect(
+                self.rect.center[0] - self.action_range[0] / 2, self.rect.center[1] - self.action_range[1] / 2, self.action_range[0], self.action_range[1])
+        elif self.type == 'pusher':
+            if self.status == 'look_left':
+                self.action_range_rect = pygame.Rect(
+                    self.rect.midleft[0] - self.action_range[0], self.rect.midleft[1] - self.action_range[1] / 2, self.action_range[0], self.action_range[1])
+            else:
+                self.action_range_rect = pygame.Rect(
+                    self.rect.midright[0], self.rect.midright[1] - self.action_range[1] / 2, self.action_range[0], self.action_range[1])
+
+        self.aura_time = pygame.time.get_ticks()
+        self.turn_time = pygame.time.get_ticks()
         self.display_surface = pygame.display.get_surface()
 
     def import_graphics(self):
@@ -67,6 +86,8 @@ class Enemy(pygame.sprite.Sprite):
         self.image = animation[int(self.frame_index)]
 
     def behaviour(self, player, aim_zone_group, bullet_groups):
+        current_time = pygame.time.get_ticks()
+
         pygame.draw.rect(self.display_surface, "red",
                          self.action_range_rect, 1)
 
@@ -87,40 +108,76 @@ class Enemy(pygame.sprite.Sprite):
                 # Create aim zone
                 if not self.aim_zone_exist:
                     self.bullet_exist = False
-                    self.aim_zone = AimZone(self, player, aim_zone_group)
+                    self.aim_zone = AimZone(self, player, aim_zone_group, True)
 
                     if self.aim_zone.is_kill:
                         self.aim_zone_exist = False
 
                 self.aim_zone_exist = True
             else:
+                # Kill aim zone
                 if self.aim_zone is not None:
                     self.aim_zone.kill()
                     self.aim_zone_exist = False
 
+            # Create the bullet
             if self.aim_zone is not None:
                 if self.aim_zone.is_aim and not self.bullet_exist:
                     self.bullet = Bullet(
                         self.rect.center, player, bullet_groups)
                     self.bullet_exist = True
         elif self.type == 'pusher':
-            pass
+            # Change direction
+            if current_time - self.turn_time >= 5000:
+                self.turn_time = current_time
+
+                self.direction = 'right' if self.direction is 'left' else 'left'
+                self.status = f'look_{self.direction}'
+
+                if self.status == 'look_left':
+                    self.action_range_rect = pygame.Rect(
+                        self.rect.midleft[0] - self.action_range[0], self.rect.midleft[1] - self.action_range[1] / 2, self.action_range[0], self.action_range[1])
+                else:
+                    self.action_range_rect = pygame.Rect(
+                        self.rect.midright[0], self.rect.midright[1] - self.action_range[1] / 2, self.action_range[0], self.action_range[1])
+
+                self.aim_zone.change_status(self.status)
+
+            if not self.aim_zone_exist:
+                self.aim_zone = AimZone(self, player, aim_zone_group)
+                self.aim_zone_exist = True
+            if self.aim_zone.is_kill:
+                self.aim_zone_exist = False
+
+            if self.action_range_rect.colliderect(player.rect):
+                self.status = f'smash_{self.direction}'
+                self.aim_zone.change_status(self.status)
+
+                # Push the player
+                if self.direction == 'left':
+                    player.direction.x = -1
+                else:
+                    player.direction.x = 1
+                player.direction.x *= 5
+            else:
+                self.status = f'look_{self.direction}'
+                self.aim_zone.change_status(self.status)
 
     def display_aura(self):
         current_time = pygame.time.get_ticks()
 
         # Set size of aura
         self.aura_size = self.aura_image.get_height()
-        if current_time - self.last_time >= 40:
+        if current_time - self.aura_time >= 200:
             if self.aura_size == 52:
                 self.aura_grow = -1
             if self.aura_size == 44:
                 self.aura_grow = 1
-        self.aura_size += self.aura_grow
+            self.aura_size += self.aura_grow
 
-        # Scale aura
-        self.aura_image = pygame.transform.scale(
-            self.aura_origin_image, (self.aura_size, self.aura_size))
+            # Scale aura
+            self.aura_image = pygame.transform.scale(
+                self.aura_origin_image, (self.aura_size, self.aura_size))
 
         # Display
         self.display_surface.blit(
@@ -132,21 +189,25 @@ class Enemy(pygame.sprite.Sprite):
 
 
 class AimZone(pygame.sprite.Sprite):
-    def __init__(self, enemy, player, groups):
+    def __init__(self, enemy, player, groups, rotate=None):
         super().__init__(groups)
 
         # Setup
+        self.enemy = enemy
         self.enemy_type = enemy.type
         self.status = enemy.status
-        self.pos = enemy.rect.center
         self.player = player
+        self.pos = enemy.rect.center if self.enemy_type == 'sniper' else enemy.rect.midleft if self.status.split('_')[
+            1] == 'left' else enemy.rect.midright
+        self.can_rotate = False if rotate is None else rotate
         self.import_graphics()
 
         self.is_aim = False
         self.is_kill = False
 
         # Animation
-        self.aim_speed = 1000
+        # Sniper 500 / Pusher 100
+        self.frame_delay = 500 if self.enemy_type is 'sniper' else 100
         self.frame_index = 0
 
         self.image = self.animations[self.status][0]
@@ -160,7 +221,6 @@ class AimZone(pygame.sprite.Sprite):
         self.animations = {}
 
         for dir in animations_dir:
-            print(dir.name)
             self.animations[dir.name] = []
 
         for animation in self.animations:
@@ -171,19 +231,35 @@ class AimZone(pygame.sprite.Sprite):
         animation = self.animations[self.status]
         current_time = pygame.time.get_ticks()
 
-        if current_time - self.last_time >= self.aim_speed and self.frame_index < len(animation) - 1:
+        # Loop over the frame index
+        if current_time - self.last_time >= self.frame_delay and self.frame_index < len(animation):
             self.last_time = current_time
-            print(self.frame_index, '/', len(animation) - 1)
             self.frame_index += 1
 
-        if current_time - self.last_time >= self.aim_speed and self.frame_index == len(animation) - 1:
-            self.is_kill = True
-            self.is_aim = True
-            print("AIM ZONE KILL")
-            self.kill()
+        # Reset
+        if self.frame_index >= len(animation):
+            self.frame_index = 0
+
+        # Kill if animation is finish
+        if self.enemy_type == 'sniper':
+            if self.frame_index + 1 == len(animation):
+                self.is_kill = True
+                self.is_aim = True
+                self.kill()
 
         self.image = animation[self.frame_index]
-        self.rect = self.image.get_rect(midbottom=self.pos)
+        if self.enemy_type == 'sniper':
+            self.rect = self.image.get_rect(center=self.pos)
+        else:
+            if self.status.split('_')[1] == 'left':
+                self.rect = self.image.get_rect(midright=self.pos)
+            else:
+                self.rect = self.image.get_rect(midleft=self.pos)
+
+    def change_status(self, status):
+        self.status = status
+        self.pos = self.enemy.rect.center if self.enemy_type == 'sniper' else self.enemy.rect.midleft if self.status.split('_')[
+            1] == 'left' else self.enemy.rect.midright
 
     def rotate(self):
         mx, my = self.player.rect.center
@@ -191,25 +267,34 @@ class AimZone(pygame.sprite.Sprite):
             self.player.camera_offset[0], self.rect.centery + \
             self.player.camera_offset[1] - my
         angle = math.degrees(math.atan2(-dy, dx)) + 90
+
         self.image = pygame.transform.rotate(self.image, -angle)
         self.rect = self.image.get_rect(center=self.pos)
 
     def update(self):
         self.animate()
-        self.rotate()
+
+        if self.can_rotate:
+            self.rotate()
 
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, pos, player, groups):
         super().__init__(groups)
+
+        # Setup
         self.sprite_type = 'bullet'
         self.pos = pos
         self.player = player
-        self.image = pygame.Surface((4, 6))
-        self.image.fill("#e02323")
+
+        self.image = pygame.image.load(
+            'graphics/enemies/bullet.png').convert_alpha()
         self.rect = self.image.get_rect(center=pos)
+
         self.speed = 10
         self.direction = pygame.Vector2()
+
+        self.rotate()
 
     def get_direction(self):
         enemy_pos = pygame.Vector2(self.pos)
@@ -221,6 +306,15 @@ class Bullet(pygame.sprite.Sprite):
             self.direction = (player_pos - enemy_pos).normalize()
         else:
             self.direction = pygame.math.Vector2()
+
+    def rotate(self):
+        mx, my = self.player.rect.center
+        dx, dy = mx - self.rect.centerx + \
+            self.player.camera_offset[0], self.rect.centery + \
+            self.player.camera_offset[1] - my
+        angle = math.degrees(math.atan2(-dy, dx)) + 180
+        self.image = pygame.transform.rotate(self.image, -angle)
+        self.rect = self.image.get_rect(center=self.pos)
 
     def collide_player(self):
         if self.rect.colliderect(self.player.rect):

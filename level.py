@@ -71,6 +71,9 @@ class Level:
                             if col == '1':  # Sniper Enemy
                                 Enemy('sniper', (x, y), [
                                       self.visible_sprites, self.enemy_sprites])
+                            if col == '2':  # Sniper Enemy
+                                Enemy('pusher', (x, y), [
+                                      self.visible_sprites, self.enemy_sprites])
                             if col == '6':  # Portal
                                 self.portal = AnimatedTile(
                                     'portal', (x, y), [self.visible_sprites], 'graphics/portal')
