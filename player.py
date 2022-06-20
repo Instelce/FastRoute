@@ -4,11 +4,13 @@ from debug import debug
 from svg.path import parse_path
 
 from settings import TILE_SIZE
+from supports import import_folder
 
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, pos, groups, obstacle_sprites, camera) -> None:
         super().__init__(groups)
+        self.import_assets()
 
         # Setup
         self.sprite_type = 'player'
@@ -28,7 +30,8 @@ class Player(pygame.sprite.Sprite):
         self.in_air = False
         self.air_time = None
         self.max_air_time = 1000
-        self.force_range = pygame.Rect(self.rect.centerx - 200, self.rect.centery - 200, 400, 400)
+        self.force_range = pygame.Rect(
+            self.rect.centerx - 200, self.rect.centery - 200, 400, 400)
         self.first_move = False
 
         self.on_right = False
@@ -37,17 +40,32 @@ class Player(pygame.sprite.Sprite):
         self.on_top = False
         self.is_colliding = True
 
+        # Animation
+        self.status = 'normal'
+        self.frame_index = 0
+        self.animation_speed = 0.15
+
         # Camera
         self.camera = camera
         self.camera_offset = self.camera.get_offset()
 
         # Indicator
-        self.indicator_original_image = pygame.image.load('graphics/player/indicator.png').convert_alpha()
+        self.indicator_original_image = pygame.image.load(
+            'graphics/player/indicator.png').convert_alpha()
         self.indicator_image = self.indicator_original_image
-        self.indicator_rect = self.indicator_image.get_rect(midbottom=(self.rect.centerx+self.camera_offset[0], self.rect.centery+self.camera_offset[1]))
+        self.indicator_rect = self.indicator_image.get_rect(midbottom=(
+            self.rect.centerx + self.camera_offset[0], self.rect.centery + self.camera_offset[1]))
 
         self.last_time = pygame.time.get_ticks()
         self.display_surface = pygame.display.get_surface()
+
+    def import_assets(self):
+        animation_path = 'graphics/player/'
+        self.animations = {'normal': [], 'in_air': []}
+
+        for animation in self.animations.keys():
+            full_path = animation_path + animation
+            self.animations[animation] = import_folder(full_path)
 
     def input(self):
         keys = pygame.key.get_pressed()
@@ -72,7 +90,7 @@ class Player(pygame.sprite.Sprite):
             self.first_move = True
 
             print('Launched !')
-        
+
         # if self.in_air:
         #     print("In air")
         #     if self.air_time - self.last_time >= self.max_air_time:
@@ -80,18 +98,36 @@ class Player(pygame.sprite.Sprite):
         #         self.force = self.min_force
         #         self.direction = pygame.Vector2()
 
+    def get_status(self):
+        if self.in_air:
+            self.status = 'in_air'
+        else:
+            self.status = 'normal'
+
+    def animate(self):
+        animation = self.animations[self.status]
+
+        # Loop over the frame index
+        self.frame_index += self.animation_speed
+        if self.frame_index >= len(animation):
+            self.frame_index = 0
+
+        # Set the image
+        self.image = animation[int(self.frame_index)]
+        # self.rect = self.image.get_rect(center=)
+
     def move(self, speed):
         if self.direction.magnitude() != 0:
             self.direction = self.direction.normalize()
 
         # Horizontal
-        self.rect.x += self.direction.x * (speed/10)
+        self.rect.x += self.direction.x * (speed / 10)
         self.collision('horizontal')
 
         # Vertical
-        self.rect.y += self.direction.y * (speed/10)
+        self.rect.y += self.direction.y * (speed / 10)
         self.collision('vertical')
-        
+
         if self.is_colliding:
             self.force = 0
             self.direction = pygame.math.Vector2()
@@ -145,7 +181,8 @@ class Player(pygame.sprite.Sprite):
                 self.apply_gravity()
 
     def get_direction_force(self):
-        mouse_pos = (pygame.mouse.get_pos()[0] - self.camera_offset[0], pygame.mouse.get_pos()[1] - self.camera_offset[1])
+        mouse_pos = (pygame.mouse.get_pos()[
+                     0] - self.camera_offset[0], pygame.mouse.get_pos()[1] - self.camera_offset[1])
         player_vec = pygame.math.Vector2(self.rect.center)
         mouse_vec = pygame.math.Vector2(mouse_pos)
         force = 0
@@ -178,22 +215,32 @@ class Player(pygame.sprite.Sprite):
             direction = self.get_direction_force()[1]
             mouse_pos = pygame.mouse.get_pos()
 
-            self.force_range = pygame.Rect(self.rect.centerx - 200 + self.camera_offset[0], self.rect.centery - 200 + self.camera_offset[1], 400, 400)
+            self.force_range = pygame.Rect(
+                self.rect.centerx - 200 + self.camera_offset[0], self.rect.centery - 200 + self.camera_offset[1], 400, 400)
 
             mx, my = pygame.mouse.get_pos()
-            dx, dy = mx - self.rect.centerx+self.camera_offset[0], self.rect.centery+self.camera_offset[1] - my
+            dx, dy = mx - self.rect.centerx + \
+                self.camera_offset[0], self.rect.centery + \
+                self.camera_offset[1] - my
             angle = math.degrees(math.atan2(-dy, dx)) + 90
-            self.indicator_size = (self.indicator_original_image.get_size()[0], force)
-            self.indicator_image = pygame.transform.scale(self.indicator_original_image, (self.indicator_size[0], math.floor(self.indicator_size[1])))
-            self.indicator_image = pygame.transform.rotate(self.indicator_image, -angle) 
+            self.indicator_size = (
+                self.indicator_original_image.get_size()[0], force)
+            self.indicator_image = pygame.transform.scale(
+                self.indicator_original_image, (self.indicator_size[0], math.floor(self.indicator_size[1])))
+            self.indicator_image = pygame.transform.rotate(
+                self.indicator_image, -angle)
 
-            indicator_pos = (self.rect.center[0] + self.camera_offset[0], self.rect.center[1] + self.camera_offset[1])
+            indicator_pos = (
+                self.rect.center[0] + self.camera_offset[0], self.rect.center[1] + self.camera_offset[1])
             if -270 < -angle < -90:
-                self.indicator_rect = self.indicator_image.get_rect(center=indicator_pos)
+                self.indicator_rect = self.indicator_image.get_rect(
+                    center=indicator_pos)
             else:
-                self.indicator_rect = self.indicator_image.get_rect(center=indicator_pos)
+                self.indicator_rect = self.indicator_image.get_rect(
+                    center=indicator_pos)
 
-            self.display_surface.blit(self.indicator_image, self.indicator_rect)
+            self.display_surface.blit(
+                self.indicator_image, self.indicator_rect)
 
             # pygame.draw.line(self.display_surface, "white", indicator_pos, pygame.mouse.get_pos(), 2)
 
@@ -204,7 +251,8 @@ class Player(pygame.sprite.Sprite):
 
     def update(self):
         self.camera_offset = self.camera.get_offset()
-        
+
+        self.get_status()
+        self.animate()
         self.input()
         self.move(self.force)
-
