@@ -1,0 +1,8 @@
+{
+	"sniper": {
+		"action_range": 300
+	},
+	"pusher": {
+		"action_range": 20
+	}
+}

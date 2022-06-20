@@ -1,10 +1,9 @@
-import enum
 from random import randint
 import pygame
 from camera import Camera
 from debug import debug
 from player import Player
-
+from enemy import Enemy
 from supports import *
 from tiles import *
 from settings import *
@@ -22,6 +21,7 @@ class Level:
         self.visible_sprites = pygame.sprite.Group()
         self.obstacle_sprites = pygame.sprite.Group()
         self.spike_sprites = pygame.sprite.Group()
+        self.enemy_sprites = pygame.sprite.Group()
         self.map_loader_sprites = pygame.sprite.Group()
 
         # Level
@@ -68,6 +68,9 @@ class Level:
                             if col == '0':  # Player
                                 self.player = Player(
                                     (x, y), [self.visible_sprites], self.obstacle_sprites, self.camera)
+                            if col == '1':  # Sniper Enemy
+                                Enemy('sniper', (x, y), [
+                                      self.visible_sprites, self.enemy_sprites])
                             if col == '6':  # Portal
                                 self.portal = AnimatedTile(
                                     'portal', (x, y), [self.visible_sprites], 'graphics/portal')
@@ -201,6 +204,10 @@ class Level:
             self.display_surface.blit(sprite.image, self.camera.apply(sprite))
 
         self.player.draw_indicator()
+
+        for enemy in self.enemy_sprites:
+            enemy.behaviour(self.player, [self.visible_sprites], [
+                            self.visible_sprites, self.spike_sprites])
 
         # Debug
         debug(self.player.direction)
