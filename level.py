@@ -7,6 +7,7 @@ from enemy import Enemy
 from supports import *
 from tiles import *
 from settings import *
+from particle import Particle
 
 
 class Level:
@@ -22,6 +23,7 @@ class Level:
         self.obstacle_sprites = pygame.sprite.Group()
         self.spike_sprites = pygame.sprite.Group()
         self.enemy_sprites = pygame.sprite.Group()
+        self.light_sprites = pygame.sprite.Group()
         self.map_loader_sprites = pygame.sprite.Group()
 
         # Level
@@ -74,6 +76,9 @@ class Level:
                             if col == '2':  # Sniper Enemy
                                 Enemy('pusher', (x, y), [
                                       self.visible_sprites, self.enemy_sprites])
+                            if col == '4':  # Light
+                                AnimatedTile('light', (x, y), [
+                                             self.visible_sprites, self.light_sprites], 'graphics/light')
                             if col == '6':  # Portal
                                 self.portal = AnimatedTile(
                                     'portal', (x, y), [self.visible_sprites], 'graphics/portal')
@@ -138,35 +143,29 @@ class Level:
                                 self.visible_sprites], surf)
 
     def create_particles(self):
-        pox, poy = (self.portal.rect.center[0] + self.camera.get_offset()[
-                    0], self.portal.rect.center[1] + self.camera.get_offset()[1])
-        self.particles.append(
-            [[pox, poy], [randint(0, 42) / 6 - 3.5, randint(0, 42) / 6 - 3.5], randint(2, 4)])
-
-        if self.player.in_air and not self.player.is_aim:
-            px, py = (self.player.rect.centerx + self.camera.get_offset()
-                      [0], self.player.rect.centery + self.camera.get_offset()[1])
-            self.particles.append([[px, py], [randint(
-                0, 42) / 8 - 3.5, randint(0, 42) / 8 - 3.5], randint(2, self.player.force // 20)])
-
-        for particle in self.particles:
-            particle[0][0] += particle[1][0]
-            # loc_str = [int(particle[0][0] / TILE_SIZE), int(particle[0][1] / TILE_SIZE)]
-            # particle[1][0] = -0.7 * particle[1][0]
-            # particle[1][1] *= 0.95
-            # particle[0][0] += particle[1][0] * 2
-            particle[0][1] += particle[1][1]
-            # loc_str = str(int(particle[0][0] / TILE_SIZE)) + ';' + str(int(particle[0][1] / TILE_SIZE))
-            # if loc_str in tile_map:
-            #     particle[1][1] = -0.7 * particle[1][1]
-            #     particle[1][0] *= 0.95
-            #     particle[0][1] += particle[1][1] * 2
-            particle[2] -= 0.035
-            particle[1][1] += 0.15
-            pygame.draw.circle(self.display_surface, "#0e071b", [int(
-                particle[0][0]), int(particle[0][1])], int(particle[2]))
-            if particle[2] <= 0:
-                self.particles.remove(particle)
+        # Lights
+        for light in self.light_sprites:
+            for part in range(1, 2):
+                self.particles.append(
+                    Particle(light.rect.midtop[0], light.rect.midtop[1], [randint(0, 20) / 10 - 1, -2], 'white', randint(2, 4), True))
+        # PLayer
+        if self.player.force > 0:
+            for part in range(1, 5):
+                if part % 2 == 0:
+                    color = 'purple'
+                else:
+                    color = 'blue'
+                self.particles.append(
+                    Particle(self.player.rect.centerx, self.player.rect.centery, [randint(0, 20) / 10 - 1, self.player.direction.y], color, randint(2, 4)))
+        # for part in range(1, 5):
+        #     if part % 2 == 0:
+        #         color = 'purple'
+        #     else:
+        #         color = 'blue'
+        #     self.particles.append(
+        #         Particle(self.portal.rect.centerx, self.portal.rect.centery, [randint(0, 20) / 10 - 1, -2], color, randint(2, 4)))
+        #     self.particles.append(
+        #         Particle(self.portal.rect.centerx, self.portal.rect.centery, [randint(0, 20) / 10 - 1, -1], color, randint(2, 4)))
 
     def check_player_death(self):
         for spike_sprite in self.spike_sprites:
@@ -206,8 +205,15 @@ class Level:
         for sprite in self.visible_sprites:
             self.display_surface.blit(sprite.image, self.camera.apply(sprite))
 
+        # Draw particles
+        for i, part in sorted(enumerate(self.particles), reverse=True):
+            part.move(self.particles)
+            part.draw(self.display_surface)
+
+        # Draw indicator of player
         self.player.draw_indicator()
 
+        # Call enemy behaviour
         for enemy in self.enemy_sprites:
             enemy.behaviour(self.player, [self.visible_sprites], [
                             self.visible_sprites, self.spike_sprites])
@@ -221,3 +227,4 @@ class Level:
         debug(self.player.rect, 60)
         debug(self.camera.get_offset(), 70)
         debug(pygame.mouse.get_pos(), 80)
+        debug(len(self.particles), 90)

@@ -38,6 +38,7 @@ class AnimatedTile(Tile):
 
     def update(self):
         self.animate()
+        self.rect = self.image.get_rect(topleft=self.pos)
 
 
 class CircularSpike(SurfTile):
@@ -58,7 +59,7 @@ class CircularSpike(SurfTile):
             self.original_image, -self.rotation_deg)
         self.rect = self.image.get_rect(center=self.pos)
         self.death_box = self.rect.inflate(-16, -16)
-        # pygame.draw.rect(self.display_surface, 'red', self.death_box, 1)
+        pygame.draw.rect(self.display_surface, 'red', self.death_box, 1)
 
     def update(self):
         self.rotate()
@@ -69,7 +70,8 @@ class LargeSpike(AnimatedTile):
         super().__init__(sprite_type, pos, groups, path)
         self.direction = direction
         self.last_time = pygame.time.get_ticks()
-        self.can_animate = False
+        self.can_animate = True
+        self.cooldown = randint(2, 4) * 1000
 
         # Update rect
         if self.direction == "up":
@@ -80,18 +82,22 @@ class LargeSpike(AnimatedTile):
                 topright=(self.pos[0] + TILE_SIZE, self.pos[1]))
         else:
             self.rect = self.image.get_rect(topleft=self.pos)
+
+    def animate(self):
+        self.frame_index += 0.15
+        if self.frame_index >= len(self.frames):
+            self.frame_index = 0
+            self.can_animate = False
+        self.image = self.frames[int(self.frame_index)]
 
     def update(self):
-        current_time = pygame.time.get_ticks()
-
-        # print(current_time, self.last_time)
-        # if current_time - self.last_time >= 1000:
-        #     print(int(self.frame_index), len(self.frames))
-        #     if int(self.frame_index) == 0:
-        #         self.last_time = current_time
-        #         print("No animation")
-
-        #     self.animate()
+        if self.can_animate:
+            self.animate()
+        else:
+            current_time = pygame.time.get_ticks()
+            if current_time - self.last_time >= self.cooldown:
+                self.last_time = current_time
+                self.can_animate = True
 
         # Update rect
         if self.direction == "up":
@@ -103,7 +109,7 @@ class LargeSpike(AnimatedTile):
         else:
             self.rect = self.image.get_rect(topleft=self.pos)
 
-        # pygame.draw.rect(self.display_surface, 'red', self.rect, 1)
+        pygame.draw.rect(self.display_surface, 'red', self.rect, 1)
 
 
 class SquareSpike(SurfTile):

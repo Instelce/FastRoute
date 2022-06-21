@@ -46,6 +46,8 @@ class Enemy(pygame.sprite.Sprite):
 
         # Stats
         self.enemy_stats = read_json_file('data/enemies.json')[self.type]
+
+        # Action range
         self.action_range = self.enemy_stats['action_range']
         if self.type == 'sniper':
             self.action_range_rect = pygame.Rect(
