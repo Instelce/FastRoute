@@ -8,7 +8,7 @@ from supports import import_folder, read_json_file
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, enemy_type, pos, groups) -> None:
+    def __init__(self, enemy_type, pos, groups, camera) -> None:
         super().__init__(groups)
 
         # Setup
@@ -17,6 +17,10 @@ class Enemy(pygame.sprite.Sprite):
         self.import_graphics()
         self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
         self.rect = self.image.get_rect(topleft=self.pos)
+
+        # Camera
+        self.camera = camera
+        self.camera_offset = self.camera.get_offset()
 
         # Aura
         self.aura_origin_image = pygame.image.load(
@@ -49,16 +53,7 @@ class Enemy(pygame.sprite.Sprite):
 
         # Action range
         self.action_range = self.enemy_stats['action_range']
-        if self.type == 'sniper':
-            self.action_range_rect = pygame.Rect(
-                self.rect.center[0] - self.action_range[0] / 2, self.rect.center[1] - self.action_range[1] / 2, self.action_range[0], self.action_range[1])
-        elif self.type == 'pusher':
-            if self.status == 'look_left':
-                self.action_range_rect = pygame.Rect(
-                    self.rect.midleft[0] - self.action_range[0], self.rect.midleft[1] - self.action_range[1] / 2, self.action_range[0], self.action_range[1])
-            else:
-                self.action_range_rect = pygame.Rect(
-                    self.rect.midright[0], self.rect.midright[1] - self.action_range[1] / 2, self.action_range[0], self.action_range[1])
+        self.create_aim_zone_rect()
 
         self.aura_time = pygame.time.get_ticks()
         self.turn_time = pygame.time.get_ticks()
@@ -89,6 +84,8 @@ class Enemy(pygame.sprite.Sprite):
 
     def behaviour(self, player, aim_zone_group, bullet_groups):
         current_time = pygame.time.get_ticks()
+        player_rect = pygame.Rect(
+            player.rect.left + self.camera_offset[0], player.rect.top + self.camera_offset[1], player.image.get_width(), player.image.get_height())
 
         pygame.draw.rect(self.display_surface, "red",
                          self.action_range_rect, 1)
@@ -104,7 +101,7 @@ class Enemy(pygame.sprite.Sprite):
             if player.rect.x > self.rect.x:
                 self.status = 'look_right'
 
-            if self.action_range_rect.colliderect(player.rect):
+            if self.action_range_rect.colliderect(player_rect):
                 self.status = 'shoot'
 
                 # Create aim zone
@@ -136,13 +133,7 @@ class Enemy(pygame.sprite.Sprite):
                 self.direction = 'right' if self.direction is 'left' else 'left'
                 self.status = f'look_{self.direction}'
 
-                if self.status == 'look_left':
-                    self.action_range_rect = pygame.Rect(
-                        self.rect.midleft[0] - self.action_range[0], self.rect.midleft[1] - self.action_range[1] / 2, self.action_range[0], self.action_range[1])
-                else:
-                    self.action_range_rect = pygame.Rect(
-                        self.rect.midright[0], self.rect.midright[1] - self.action_range[1] / 2, self.action_range[0], self.action_range[1])
-
+                self.create_aim_zone_rect()
                 self.aim_zone.change_status(self.status)
 
             if not self.aim_zone_exist:
@@ -151,7 +142,7 @@ class Enemy(pygame.sprite.Sprite):
             if self.aim_zone.is_kill:
                 self.aim_zone_exist = False
 
-            if self.action_range_rect.colliderect(player.rect):
+            if self.action_range_rect.colliderect(player_rect):
                 self.status = f'smash_{self.direction}'
                 self.aim_zone.change_status(self.status)
 
@@ -164,6 +155,18 @@ class Enemy(pygame.sprite.Sprite):
             else:
                 self.status = f'look_{self.direction}'
                 self.aim_zone.change_status(self.status)
+
+    def create_aim_zone_rect(self):
+        if self.type == 'sniper':
+            self.action_range_rect = pygame.Rect(
+                self.rect.center[0] + self.camera_offset[0] - self.action_range[0] / 2, self.rect.center[1] + self.camera_offset[1] - self.action_range[1] / 2, self.action_range[0], self.action_range[1])
+        elif self.type == 'pusher':
+            if self.status == 'look_left':
+                self.action_range_rect = pygame.Rect(
+                    self.rect.midleft[0] + self.camera_offset[0] - self.action_range[0], self.rect.midleft[1] + self.camera_offset[1] - self.action_range[1] / 2, self.action_range[0], self.action_range[1])
+            else:
+                self.action_range_rect = pygame.Rect(
+                    self.rect.midright[0] + self.camera_offset[0], self.rect.midright[1] + self.camera_offset[1] - self.action_range[1] / 2, self.action_range[0], self.action_range[1])
 
     def display_aura(self):
         current_time = pygame.time.get_ticks()
@@ -183,9 +186,12 @@ class Enemy(pygame.sprite.Sprite):
 
         # Display
         self.display_surface.blit(
-            self.aura_image, (self.rect.center[0] - self.aura_size / 2, self.rect.center[1] - self.aura_size / 2))
+            self.aura_image, (self.rect.center[0] - self.aura_size / 2 + self.camera_offset[0], self.rect.center[1] - self.aura_size / 2 + self.camera_offset[1]))
 
     def update(self):
+        self.camera_offset = self.camera.get_offset()
+
+        self.create_aim_zone_rect()
         self.display_aura()
         self.animate()
 
@@ -264,7 +270,8 @@ class AimZone(pygame.sprite.Sprite):
             1] == 'left' else self.enemy.rect.midright
 
     def rotate(self):
-        mx, my = self.player.rect.center
+        mx, my = (self.player.rect.center[0] + self.player.camera_offset[0],
+                  self.player.rect.center[1] + self.player.camera_offset[1])
         dx, dy = mx - self.rect.centerx + \
             self.player.camera_offset[0], self.rect.centery + \
             self.player.camera_offset[1] - my
@@ -310,9 +317,10 @@ class Bullet(pygame.sprite.Sprite):
             self.direction = pygame.math.Vector2()
 
     def rotate(self):
-        mx, my = self.player.rect.center
-        dx, dy = mx - self.rect.centerx + \
-            self.player.camera_offset[0], self.rect.centery + \
+        mx, my = (self.player.rect.center[0] + self.player.camera_offset[0],
+                  self.player.rect.center[1] + self.player.camera_offset[1])
+        dx, dy = mx - self.rect.centerx - \
+            self.player.camera_offset[0], self.rect.centery - \
             self.player.camera_offset[1] - my
         angle = math.degrees(math.atan2(-dy, dx)) + 180
         self.image = pygame.transform.rotate(self.image, -angle)

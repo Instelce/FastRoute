@@ -167,7 +167,6 @@ class Game:
                     pygame.quit()
                     sys.exit()
 
-            # self.screen.fill('#0e071b')
             self.screen.fill('black')
             self.display_scene()
 

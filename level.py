@@ -1,5 +1,6 @@
 from random import randint
 import pygame
+
 from camera import Camera
 from debug import debug
 from player import Player
@@ -40,16 +41,23 @@ class Level:
             self.map_layouts[style] = import_csv_layout(layout)
 
         # Camera
+        self.LEVEL_WIDTH = len(self.map_layouts['wall'][0]) * TILE_SIZE
+        self.LEVEL_HEIGHT = len(self.map_layouts['wall']) * TILE_SIZE
         self.camera = Camera(
-            len(self.map_layouts['wall'][0]) * TILE_SIZE,
-            len(self.map_layouts['wall']) * TILE_SIZE
+            self.LEVEL_WIDTH,
+            self.LEVEL_HEIGHT
         )
+        self.camera_offset = self.camera.get_offset()
 
         # Paticles
         self.particles = []
 
         # Create map
         self.create_map()
+        self.create_background()
+
+        self.background_surface_angle = 0
+        self.background_time = pygame.time.get_ticks()
 
     def create_map(self):
         graphics = {
@@ -72,10 +80,10 @@ class Level:
                                     (x, y), [self.visible_sprites], self.obstacle_sprites, self.camera)
                             if col == '1':  # Sniper Enemy
                                 Enemy('sniper', (x, y), [
-                                      self.visible_sprites, self.enemy_sprites])
+                                      self.visible_sprites, self.enemy_sprites], self.camera)
                             if col == '2':  # Sniper Enemy
                                 Enemy('pusher', (x, y), [
-                                      self.visible_sprites, self.enemy_sprites])
+                                      self.visible_sprites, self.enemy_sprites], self.camera)
                             if col == '4':  # Light
                                 AnimatedTile('light', (x, y), [
                                              self.visible_sprites, self.light_sprites], 'graphics/light')
@@ -146,17 +154,21 @@ class Level:
         # Lights
         for light in self.light_sprites:
             for part in range(1, 2):
+                if part % 2 == 0:
+                    color = '#ffffff'
+                else:
+                    color = 'gray'
                 self.particles.append(
-                    Particle(light.rect.midtop[0], light.rect.midtop[1], [randint(0, 20) / 10 - 1, -2], 'white', randint(2, 4), True))
+                    Particle(light.rect.midtop[0] + int(self.camera_offset[0]), light.rect.midtop[1] + int(self.camera_offset[1]), [randint(0, 20) / 10 - 1, -2], color, randint(2, 4), True))
         # PLayer
         if self.player.force > 0:
             for part in range(1, 5):
                 if part % 2 == 0:
-                    color = 'purple'
+                    color = '#724cac'
                 else:
-                    color = 'blue'
+                    color = '#9872b6'
                 self.particles.append(
-                    Particle(self.player.rect.centerx, self.player.rect.centery, [randint(0, 20) / 10 - 1, self.player.direction.y], color, randint(2, 4)))
+                    Particle(self.player.rect.centerx + self.camera_offset[0], self.player.rect.centery + self.camera_offset[1], [randint(0, 20) / 10 - 1, self.player.direction.y], color, randint(2, 4)))
         # for part in range(1, 5):
         #     if part % 2 == 0:
         #         color = 'purple'
@@ -166,6 +178,44 @@ class Level:
         #         Particle(self.portal.rect.centerx, self.portal.rect.centery, [randint(0, 20) / 10 - 1, -2], color, randint(2, 4)))
         #     self.particles.append(
         #         Particle(self.portal.rect.centerx, self.portal.rect.centery, [randint(0, 20) / 10 - 1, -1], color, randint(2, 4)))
+
+    def create_background(self):
+        self.background_rects = []
+        for i in range(0, self.LEVEL_HEIGHT, 200):
+            print(i, '/', self.LEVEL_HEIGHT)
+            self.background_rects.append(
+                [(0, i + self.camera_offset[1]),
+                 pygame.Surface((SCREEN_WIDTH, 160), pygame.SRCALPHA)]
+            )
+        for surface in self.background_rects:
+            surface[1].fill((10, 10, 10))
+
+    def display_background(self):
+        current_time = pygame.time.get_ticks()
+
+        for surface in self.background_rects:
+            # Update pos
+            surface[0] = (
+                surface[0][0], surface[0][1] + 1)
+
+            # Reset pos
+            if surface[0][1] > self.LEVEL_HEIGHT:
+                surface[0] = (surface[0][0], -100)
+
+            # Set angle
+            if self.player.force > 0:
+                if self.background_surface_angle < 10 and current_time - self.background_time >= 100:
+                    self.background_time = current_time
+                    self.background_surface_angle += self.player.force // 20
+            else:
+                if self.background_surface_angle > 0 and current_time - self.background_time >= 10:
+                    self.background_time = current_time
+                    self.background_surface_angle -= 1
+
+            # Rotate and draw
+            surface_rot = pygame.transform.rotate(
+                surface[1], -self.background_surface_angle)
+            self.display_surface.blit(surface_rot, surface[0])
 
     def check_player_death(self):
         for spike_sprite in self.spike_sprites:
@@ -193,6 +243,8 @@ class Level:
             self.create_level_chooser_menu()
 
     def display(self):
+        self.camera_offset = self.camera.get_offset()
+        self.display_background()
         self.create_particles()
 
         self.redirect()

@@ -227,8 +227,10 @@ class Player(pygame.sprite.Sprite):
                 self.indicator_original_image.get_size()[0], force)
             self.indicator_image = pygame.transform.scale(
                 self.indicator_original_image, (self.indicator_size[0], math.floor(self.indicator_size[1])))
-            self.indicator_image = pygame.transform.rotate(
-                self.indicator_image, -angle)
+
+            if current_time - self.last_time >= 100:
+                self.indicator_image = pygame.transform.rotate(
+                    self.indicator_image, -angle)
 
             indicator_pos = (
                 self.rect.center[0] + self.camera_offset[0], self.rect.center[1] + self.camera_offset[1])

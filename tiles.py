@@ -109,7 +109,7 @@ class LargeSpike(AnimatedTile):
         else:
             self.rect = self.image.get_rect(topleft=self.pos)
 
-        pygame.draw.rect(self.display_surface, 'red', self.rect, 1)
+        # pygame.draw.rect(self.display_surface, 'red', self.rect, 1)
 
 
 class SquareSpike(SurfTile):
