@@ -12,12 +12,15 @@ from particle import Particle
 
 
 class Level:
-    def __init__(self, level_index, create_level_chooser_menu, create_game_over_menu) -> None:
+    def __init__(self, level_index, create_level_chooser_menu, create_game_over_menu, endless=None) -> None:
 
         # Setup
         self.display_surface = pygame.display.get_surface()
         self.create_level_chooser_menu = create_level_chooser_menu
         self.create_game_over_menu = create_game_over_menu
+
+        # Endless
+        self.is_endless = False if endless is None else endless
 
         # Groups
         self.visible_sprites = pygame.sprite.Group()
@@ -28,14 +31,25 @@ class Level:
         self.map_loader_sprites = pygame.sprite.Group()
 
         # Level
-        self.level_index = level_index
-        self.level_data = read_json_file(
-            'data/levels.json')[str(self.level_index)]
         self.is_done = False
         self.player_is_dead = False
 
+        if not self.is_endless:
+            self.level_index = level_index
+            self.level_data = read_json_file(
+                'data/levels.json')[str(self.level_index)]
+            level_layouts = self.level_data['layouts']
+
+        else:
+            self.level_index = 0
+            self.level_data = {
+                "wall": "maps/endless/start/start_wall.csv",
+                "spikes": "maps/endless/start/start_spikes.csv",
+                "spawns": "maps/endless/start/start_spawns.csv"
+            }
+            level_layouts = self.level_data
+
         # Map
-        level_layouts = self.level_data['layouts']
         self.map_layouts = {}
         for style, layout in level_layouts.items():
             self.map_layouts[style] = import_csv_layout(layout)
@@ -51,11 +65,23 @@ class Level:
 
         # Paticles
         self.particles = []
+        self.particles_time = pygame.time.get_ticks()
 
         # Create map
         self.create_map()
-        self.create_background()
 
+        # Rising spikes
+        rising_spikes_surf = pygame.image.load(
+            'graphics/spikes/rising_spikes.png').convert_alpha()
+        self.rising_spikes = SurfTile('spikes', (0, self.LEVEL_HEIGHT - (5 * 16)), [
+                                      self.visible_sprites, self.spike_sprites], rising_spikes_surf)
+        self.rising_spikes_time = pygame.time.get_ticks()
+        self.rising_spikes_can_move = False
+        self.hide_rect = pygame.Rect(
+            0, self.rising_spikes.rect.top + self.camera_offset[1], SCREEN_WIDTH, self.rising_spikes.rect.height)
+
+        # Create background
+        self.create_background()
         self.background_surface_angle = 0
         self.background_time = pygame.time.get_ticks()
 
@@ -150,34 +176,61 @@ class Level:
                             SurfTile('ground', (x, y), [
                                 self.visible_sprites], surf)
 
+    def load_maps(self):
+        # if self.LEVEL_HEIGHT // 2.5 < abs(self.camera_offset[1]) < self.LEVEL_HEIGHT - (self.LEVEL_HEIGHT // 2.5):
+        #     print("LOAD NEW MAP", self.LEVEL_HEIGHT // 2.5,
+        #           abs(self.camera_offset[1]), self.LEVEL_HEIGHT - (self.LEVEL_HEIGHT // 2.5))
+
+        self.map_loader = pygame.Surface(
+            (SCREEN_WIDTH, self.LEVEL_HEIGHT // 4))
+        self.map_loader.fill('red')
+        self.display_surface.blit(
+            self.map_loader, (0, (self.LEVEL_HEIGHT // 2) + self.camera_offset[1] - self.map_loader.get_height() // 2))
+
+    def rising_spikes_movement(self):
+        current_time = pygame.time.get_ticks()
+
+        if self.player.force > 0:
+            self.rising_spikes_can_move = True
+
+        if self.player.direction.y != 0 and not self.player.is_aim:
+            move_cooldown = 100
+        else:
+            move_cooldown = 1000
+
+        if self.rising_spikes_can_move and current_time - self.rising_spikes_time >= move_cooldown:
+            self.rising_spikes_time = current_time
+            self.rising_spikes.rect.y -= 16
+            self.hide_rect.height += 16
+
+        print(move_cooldown)
+
+        self.hide_rect.top = self.rising_spikes.rect.top + \
+            self.camera_offset[1] + (2 * TILE_SIZE)
+
     def create_particles(self):
-        # Lights
-        for light in self.light_sprites:
-            for part in range(1, 2):
-                if part % 2 == 0:
-                    color = '#ffffff'
-                else:
-                    color = 'gray'
-                self.particles.append(
-                    Particle(light.rect.midtop[0] + int(self.camera_offset[0]), light.rect.midtop[1] + int(self.camera_offset[1]), [randint(0, 20) / 10 - 1, -2], color, randint(2, 4), True))
+        current_time = pygame.time.get_ticks()
+
+        if current_time - self.particles_time >= 100:
+            self.particles_time = current_time
+            # Lights
+            for light in self.light_sprites:
+                for part in range(1, 2):
+                    if part % 2 == 0:
+                        color = '#ffffff'
+                    else:
+                        color = 'yellow'
+                    self.particles.append(
+                        Particle(light.rect.midtop[0] + int(self.camera_offset[0]), light.rect.midtop[1] + int(self.camera_offset[1]), [randint(0, 20) / 10 - 1, -2], color, randint(2, 4), True))
         # PLayer
         if self.player.force > 0:
-            for part in range(1, 5):
+            for part in range(1, 2):
                 if part % 2 == 0:
                     color = '#724cac'
                 else:
                     color = '#9872b6'
                 self.particles.append(
                     Particle(self.player.rect.centerx + self.camera_offset[0], self.player.rect.centery + self.camera_offset[1], [randint(0, 20) / 10 - 1, self.player.direction.y], color, randint(2, 4)))
-        # for part in range(1, 5):
-        #     if part % 2 == 0:
-        #         color = 'purple'
-        #     else:
-        #         color = 'blue'
-        #     self.particles.append(
-        #         Particle(self.portal.rect.centerx, self.portal.rect.centery, [randint(0, 20) / 10 - 1, -2], color, randint(2, 4)))
-        #     self.particles.append(
-        #         Particle(self.portal.rect.centerx, self.portal.rect.centery, [randint(0, 20) / 10 - 1, -1], color, randint(2, 4)))
 
     def create_background(self):
         self.background_rects = []
@@ -229,8 +282,9 @@ class Level:
                     self.player_is_dead = True
 
     def check_level_is_done(self):
-        if self.player.rect.colliderect(self.portal.rect):
-            self.is_done = True
+        if not self.is_endless:
+            if self.player.rect.colliderect(self.portal.rect):
+                self.is_done = True
 
     def redirect(self):
         if self.player_is_dead:
@@ -244,8 +298,12 @@ class Level:
 
     def display(self):
         self.camera_offset = self.camera.get_offset()
+
         self.display_background()
         self.create_particles()
+
+        if self.is_endless:
+            self.load_maps()
 
         self.redirect()
         self.check_player_death()
@@ -269,6 +327,11 @@ class Level:
         for enemy in self.enemy_sprites:
             enemy.behaviour(self.player, [self.visible_sprites], [
                             self.visible_sprites, self.spike_sprites])
+
+        # Rising spikes
+        self.rising_spikes_movement()
+        pygame.draw.rect(self.display_surface, 'black', self.hide_rect)
+        print(self.hide_rect.topleft, self.rising_spikes.rect.topleft)
 
         # Debug
         debug(self.player.direction)

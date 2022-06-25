@@ -16,7 +16,7 @@ class Game:
         self.clock = pygame.time.Clock()
 
         # Scenes
-        self.status = 'level'
+        self.status = 'start_menu'
         self.level_index = 1
         self.old_status = self.status
         self.scene_transition = SceneTransition()
@@ -30,6 +30,10 @@ class Game:
                         (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 100),
                         UI_FONT,
                         TITLE_FONT_SIZE
+                    ),
+                    Button(
+                        "Endless",
+                        self.create_endless_level
                     ),
                     Button(
                         "Levels",
@@ -133,6 +137,12 @@ class Game:
     def create_game_over_menu(self):
         self.status = 'game_over_menu'
 
+    def create_endless_level(self):
+        self.scenes['level'] = Level(
+            1, self.create_level_chooser_menu, self.create_game_over_menu, True)
+        self.level_index = 'endless'
+        self.status = 'level'
+
     def create_level(self, level_index):
         self.scenes['level'] = Level(
             level_index, self.create_level_chooser_menu, self.create_game_over_menu)
@@ -140,8 +150,12 @@ class Game:
         self.status = 'level'
 
     def create_last_level(self):
-        self.scenes['level'] = Level(
-            self.level_index, self.create_level_chooser_menu, self.create_game_over_menu)
+        if self.level_index is 'endless':
+            self.scenes['level'] = Level(
+                1, self.create_level_chooser_menu, self.create_game_over_menu, True)
+        else:
+            self.scenes['level'] = Level(
+                self.level_index, self.create_level_chooser_menu, self.create_game_over_menu)
         self.status = 'level'
 
     def quit(self):

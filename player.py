@@ -18,8 +18,6 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(topleft=pos)
         self.obstacle_sprites = obstacle_sprites
 
-        self.image.fill('orange')
-
         self.is_aim = False
         self.direction = pygame.math.Vector2()
         self.gravity = 0.1
