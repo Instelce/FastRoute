@@ -9,6 +9,7 @@ from supports import *
 from tiles import *
 from settings import *
 from particle import Particle
+from audio import audio_manager
 
 
 class Level:
@@ -73,7 +74,7 @@ class Level:
         # Rising spikes
         rising_spikes_surf = pygame.image.load(
             'graphics/spikes/rising_spikes.png').convert_alpha()
-        self.rising_spikes = SurfTile('spikes', (0, self.LEVEL_HEIGHT - (5 * 16)), [
+        self.rising_spikes = SurfTile('spikes', (0, self.LEVEL_HEIGHT), [
                                       self.visible_sprites, self.spike_sprites], rising_spikes_surf)
         self.rising_spikes_time = pygame.time.get_ticks()
         self.rising_spikes_can_move = False
@@ -288,6 +289,7 @@ class Level:
 
     def redirect(self):
         if self.player_is_dead:
+            # audio_manager.play_sound('die')
             self.create_game_over_menu()
         if self.is_done:
             levels_data = read_json_file('data/levels.json')

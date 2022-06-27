@@ -5,6 +5,7 @@ from random import randint
 
 from settings import TILE_SIZE
 from supports import import_folder, read_json_file
+from audio import audio_manager
 
 
 class Enemy(pygame.sprite.Sprite):
@@ -122,6 +123,7 @@ class Enemy(pygame.sprite.Sprite):
             # Create the bullet
             if self.aim_zone is not None:
                 if self.aim_zone.is_aim and not self.bullet_exist:
+                    audio_manager.play_sound('shoot')
                     self.bullet = Bullet(
                         self.rect.center, player, bullet_groups)
                     self.bullet_exist = True
@@ -152,6 +154,8 @@ class Enemy(pygame.sprite.Sprite):
                 else:
                     player.direction.x = 1
                 player.direction.x *= 5
+
+                audio_manager.play_sound('smash')
             else:
                 self.status = f'look_{self.direction}'
                 self.aim_zone.change_status(self.status)

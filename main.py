@@ -4,12 +4,14 @@ import pygame
 from menu import *
 from settings import SCREEN_HEIGHT, SCREEN_WIDTH
 from level import Level
+from audio import audio_manager
 
 
 class Game:
     def __init__(self) -> None:
 
         # Game setup
+        pygame.mixer.pre_init(44100, -16, 2, 2048)
         pygame.init()
         pygame.display.set_caption("Fast Route")
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -27,13 +29,14 @@ class Game:
                     Text(
                         'midtop',
                         "Fast Route",
-                        (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 100),
+                        (SCREEN_WIDTH / 2, 200),
                         UI_FONT,
                         TITLE_FONT_SIZE
                     ),
                     Button(
                         "Endless",
-                        self.create_endless_level
+                        self.create_endless_level,
+                        disable=True
                     ),
                     Button(
                         "Levels",
@@ -56,13 +59,20 @@ class Game:
                     Text(
                         'midtop',
                         "Credits",
-                        (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 100),
+                        (SCREEN_WIDTH / 2, 200),
                         UI_FONT,
                         TITLE_FONT_SIZE
                     ),
                     Text(
                         'midtop',
-                        "Adve assets by egordorichev",
+                        "Inspiration from Ninja Tobu",
+                        None,
+                        UI_FONT,
+                        BUTTON_FONT_SIZE
+                    ),
+                    Text(
+                        'midtop',
+                        "Music by Nodey",
                         None,
                         UI_FONT,
                         BUTTON_FONT_SIZE
@@ -124,6 +134,10 @@ class Game:
             'level': Level(self.level_index, self.create_level_chooser_menu, self.create_game_over_menu),
         }
 
+        # Audio
+        audio_manager.play_music()
+        audio_manager.set_volume(0.4)
+
     def create_start_menu(self):
         self.status = 'start_menu'
 
@@ -183,6 +197,8 @@ class Game:
 
             self.screen.fill('black')
             self.display_scene()
+
+            audio_manager.play_music()
 
             pygame.display.update()
             self.clock.tick(60)

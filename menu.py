@@ -62,6 +62,7 @@ class LevelChooserMenu(Menu):
         self.back_button = Button(
             "Back",
             self.create_start_menu,
+            False,
             (SCREEN_WIDTH/2, SCREEN_HEIGHT-100)
         )
 
@@ -79,6 +80,7 @@ class LevelChooserMenu(Menu):
             self.level_buttons.append(Button(
                 index+1,
                 self.create_level,
+                False,
                 (SCREEN_WIDTH/2 - (button_size * 2 + gap + gap/2) + ((button_size + gap) * (index%4)), 150 + (button_size + gap) * lines_counter),
                 'topleft',
                 r"graphics\ui\buttons\level\default.png",
@@ -170,7 +172,7 @@ class SceneTransition:
 
 
 class Button:
-    def __init__(self, content, callback=None, pos=None, rect_alignement='midtop', default_image="graphics/ui/buttons/default/default.png", hover_image="graphics/ui/buttons/default/hover.png", disable_image="graphics/ui/buttons/default/disable.png") -> None:
+    def __init__(self, content, callback=None, disable=None, pos=None, rect_alignement='midtop', default_image="graphics/ui/buttons/default/default.png", hover_image="graphics/ui/buttons/default/hover.png", disable_image="graphics/ui/buttons/default/disable.png") -> None:
         self.content = str(content)
         self.callback = callback
         self.pos = (SCREEN_WIDTH/2, 200) if pos is None else pos
@@ -179,13 +181,15 @@ class Button:
         self.display_surface = pygame.display.get_surface()
         self.callback_arg = None
         self.click = False
-        self.disable = False
+        self.disable = False if disable is None else disable
 
         # Image
         self.default_image = default_image
         self.hover_image = hover_image
         self.disable_image = disable_image
         self.image = pygame.image.load(self.default_image).convert_alpha()
+        if self.rect_alignement == 'midtop': self.rect = self.image.get_rect(midtop=self.pos)
+        elif self.rect_alignement == 'topleft': self.rect = self.image.get_rect(topleft=self.pos)
         self.size = self.image.get_size()
 
         # Text

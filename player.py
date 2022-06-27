@@ -5,6 +5,7 @@ from svg.path import parse_path
 
 from settings import TILE_SIZE
 from supports import import_folder
+from audio import audio_manager
 
 
 class Player(pygame.sprite.Sprite):
@@ -86,6 +87,8 @@ class Player(pygame.sprite.Sprite):
             self.in_air = True
             self.shoot_count += 1
             self.first_move = True
+
+            # audio_manager.play_sound('jump')
 
             print('Launched !')
 
